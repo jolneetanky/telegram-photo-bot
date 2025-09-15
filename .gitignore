@@ -1,3 +1,4 @@
 .env
+venv/
 oauth_credentials.json
 oauth_token.json
