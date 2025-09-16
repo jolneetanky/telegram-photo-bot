@@ -1,4 +1,5 @@
 .env
 venv/
+images/
 oauth_credentials.json
 oauth_token.json
