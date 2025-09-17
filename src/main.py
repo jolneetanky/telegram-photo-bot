@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from gdrive import GDriveService
 import os
 from utils import get_media_files, delete_file, get_folder_components
+from handlers import help_handler
 
 async def delete_img(imgFile):
     pass
@@ -19,8 +20,6 @@ async def handle_album(update: Update, context):
         path = f"./images/{file_name}"
         file_paths.append((file_id, file_name, path))
     print(file_paths)
-
-# def get_image_file
 
 """
 Given a message, returns all image file names of images in the same album as `message`.
@@ -71,9 +70,6 @@ Context {
     }
 }
 """
-# TODO: from the album,
-# extract images
-# and install into server.
 async def upload_handler(update: Update, context):
     gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
     download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
@@ -133,8 +129,8 @@ async def upload_handler(update: Update, context):
             delete_file(file)
         print("[upload_handler()] Successfully deleted files")
 
-async def start(update: Update, context):
-    await update.message.reply_text("Send me a photo, or photos!")
+async def start_handler(update: Update, context):
+    await update.message.reply_text("Send me a photo, or photos! If you're unsure how to use this bot, just send /help.")
 
 async def handle_media_album(update: Update, context):
     print("[handle_media_album()]")
@@ -165,7 +161,8 @@ def main():
     application.bot_data["media_group_to_msg_map"] = defaultdict(set)
     application.bot_data["server_download_folder"] = SERVER_DOWNLOAD_PATH
 
-    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("start", start_handler))
+    application.add_handler(CommandHandler("help", help_handler))
     application.add_handler(CommandHandler("upload", upload_handler)) # new command handler here
     application.add_handler(MessageHandler(filters.PHOTO, handle_media_album))
     print("Telegram Bot started!", flush=True)
