@@ -73,7 +73,7 @@ def get_folder_components(update: Update, context) -> list[str]:
     args: list[str] = context.args
 
     if not args:
-        return update.message.from_user.username
+        return [update.message.from_user.username]
 
     paths = [] 
     start_idx = -1 # -1 indicates no current start_idx. If == -1, it means we have no starting " yet.
