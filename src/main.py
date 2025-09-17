@@ -6,11 +6,6 @@ from gdrive import GDriveService
 import os
 from utils import get_media_files, delete_file, get_folder_components
 
-# write handler to accept the command "post_image"
-# async def reply(update, context):
-# async def upload_to_gdrive(folder_name: str):
-#     gdrive_link = "https://drive.google.com/drive/folders/1nn8WI7Kl4iKTxyPzgi8Z1-W5RagXlMi2"
-
 async def delete_img(imgFile):
     pass
 
@@ -80,7 +75,7 @@ Context {
 # extract images
 # and install into server.
 async def upload_handler(update: Update, context):
-    gdrive_service = context.application.bot_data["gdrive_service"]
+    gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
     download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
     gdrive_parent_folder_id = os.getenv("GDRIVE_ROOT_FOLDER_ID") # TODO: maybe can pass in as argument?
 
@@ -92,10 +87,7 @@ async def upload_handler(update: Update, context):
     
     # 1) get gdrive folder name
     try:
-        print("there0")
         paths = get_folder_components(update, context)
-        print("there1")
-        print("PATHS: ", paths)
         folder_name = paths[0]
     except Exception as e:
         print("Failed to get folder name:", e)
@@ -108,8 +100,9 @@ async def upload_handler(update: Update, context):
     
     try:
         # 2) create folder if not exists
-        folder_id = gdrive_service.create_folder_if_not_exists(folder_name, gdrive_parent_folder_id)
-        print(f"[upload_handler()] Successfully created folder {folder_name} if not exists")
+        # folder_id = gdrive_service.create_folder_if_not_exists_prev(folder_name, gdrive_parent_folder_id)
+        folder_id = gdrive_service.create_folders_if_not_exists(gdrive_parent_folder_id, paths)
+        print(f"[upload_handler()] Successfully created folders. Leaf folder ID: {folder_id}")
 
         # for each file, download to server, then upload to gdrive
         media_files = get_media_files(target_msg, context)

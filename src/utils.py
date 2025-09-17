@@ -50,6 +50,7 @@ Invariants:
 - Whenever there is an ending ", there must be a starting " to match (be it in the same or different word).
 
 TEST CASES TO TRY:
+# no argument -> [{username}] returned
 # "john" -> valid, parsed as ["john"]
 # "John Doe" mary jane -> valid
 # John "doe mary" jane -> valid, parsed as [John, doe mary, jane]
@@ -123,8 +124,7 @@ def get_folder_components(update: Update, context) -> list[str]:
             i += 1
             continue
 
-        # else, no quotations add all. we can just add into cur_word.
-
+        # else, no quotations; we can just add into cur_word.
         if start_idx == -1:
             # no start idx, this is a standalone word. Just take it as a path and continue
             paths.append(args[i])
@@ -138,80 +138,3 @@ def get_folder_components(update: Update, context) -> list[str]:
         raise Exception("No matching end quotation") 
 
     return paths
-    
-    # at the end, if start_idx != -1 (meaning someone hasn't been completed yet) -> raise exception.
-    if start_idx != -1:
-        print(f"[get_folder_components()] no matching end quotation")
-        raise Exception()
-                
-        # idx = args[i].index('"')
-        # if '"' in args[i] and idx > 0 and idx < len(args[i]) - 1:
-        #     raise Exception()
-        
-        # if idx == 0:
-        #     if start_idx == -1:
-        #         start_idx = i
-        #         cur_word.append(args[i][1:]) # omit starting "
-        #     else: # if we have a starting ", but the previous hasn't ended yet
-        #         print("[get_folder_components()] Have starting \", but previous hasn't ended yet")
-        #         raise Exception()
-
-        # # not elif, cause this about the edge case where the word starts and ends with ".
-        # if idx == len(args[i]) - 1: # if " at the back of args[i]
-        #     if start_idx != -1: # if we have a starting " to match
-        #         cur_word.append(args[i][:len(args[i]) - 1]) # omit ending "
-        #         start_idx = -1 # reset start_idx
-        #     else: # " is at the back, but no starting " in a previous idx
-        #         raise Exception()
-        
-        
-        
-        # else if we start with 
-
-        # if args[i].startswith('"'):
-        #     start_idx = i
-    #     if i == start_idx and not args[i].startswith('"'):
-    #         raise Exception()
-
-    #     if args[i].endswith('"'):
-    #         start_idx = i + 1 # at the end, start_idx should == len(args)
-
-    #     i += 1
-
-    # if start_idx < len(args):
-    #     raise Exception()
-# "John Doe" mary -> valid
-# "John Doe" mary jane -> valid, parsed as [John Doe, mary, jane]
-# "John Doe" mary jane" -> invalid, unmatching "
-# jo"n doe -> invalid, can't have " in between if it's not at the start
-# KEY: for every word starting with ", there must be a matching guy at the back.
-
-# john "doe mary" jane  -> valid.
-# john "doe mary jane -> invalid, unmatching "
-# ok to make my job easier, ther should be no unmatching "
-
-
-
-    # if >1 argument but invalid syntax
-    if not args[0].startswith('"'):
-        raise Exception()
-    
-    folder_name = [args[0][1:]] # start with the first guy, 
-    i = 1
-    # edge cases: eg. "John Doe"ez nuts => we want it to be parsed as "John Doe"
-    while i < len(args) and not '"' not in args[i]:
-        folder_name.append(args[i])
-        i += 1
-
-    # if we've reached the end, yet no ending `"` found
-    if i == len(args):
-        raise Exception()
-
-    endIdx = args[i].index('"')
-    folder_name.append(args[i][:endIdx])
-    folder_name = " ".join(folder_name)
-
-    paths = []
-    paths.append(folder_name)
-
-    return " ".join(folder_name)

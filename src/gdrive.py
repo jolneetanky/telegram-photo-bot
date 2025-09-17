@@ -65,23 +65,55 @@ class GDriveService:
 
         return None
 
+    """
+    Given a list of `folder_names` and a `root_folder_id`, creates the folder_names respecting the hierarchy (left -> right), within `root_folder_id`.
+    If no `root_folder_id` is given, it will just create a new folder rooted at the first folder in `folder_names`.
+
+    TEST CASES:
+    1. `root_folder_id` passed in -> should create the nested folder_names in root_folder_id.
+    2. `root_folder_id` not passed in -> should create the folders as they are, ultimately creating a new root folder.
+    3. if `folder_names` is empty, nothing happens.
+    """
+    def create_folders_if_not_exists(self, root_folder_id, folder_names: list[str] = []) -> str:
+        if not folder_names:
+            print("[get_leaf_folder_id()] No paths to create folders for.")
+            return
+
+        parent_id = root_folder_id
+
+        for folder_name in folder_names:
+            if parent_id == "":
+                parent_id = self._create_folder(folder_name, parent_id)
+                continue
+
+            # create folder if it doesn't exist.
+            folder_id = self._get_folder(folder_name, parent_id)
+            if folder_id:
+                parent_id = folder_id
+                continue
+
+            parent_id = self._create_folder(folder_name, parent_id)
+
+        return parent_id
+
+            # if the current 
+        
+        # return self._helper(0, paths)
+
     # returns folder ID
-    # creates a folder (recursively) if it doesn't exist
-    def create_folder_if_not_exists(self, folder_name: str, parent_folder_id: str = None) -> str:
+    def _create_folder(self, folder_name: str, parent_folder_id: str = None) -> str:
         print("create_folder_if_not_exists()")
 
-        try:
-            folder_id = self._get_folder(folder_name, parent_folder_id)
-            if folder_id:
-                print("Folder already exists")
-                return folder_id
-        except Exception as e:
-            print("Failed to check if folder exists: ", e)
-            raise e
+        # try:
+        #     folder_id = self._get_folder(folder_name, parent_folder_id)
+        #     if folder_id:
+        #         print("Folder already exists")
+        #         return folder_id
+        # except Exception as e:
+        #     print("Failed to check if folder exists: ", e)
+        #     raise e
 
-        # scan through folders - if they exist, then just return
-
-        print("SERVICE ACCOUNT FILE", self.google_service_account_file)
+        # if folder doesn't exist, create one
         """Create a folder in Google Drive and return its ID."""
         folder_metadata = {
             'name': folder_name,
