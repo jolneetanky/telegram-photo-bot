@@ -72,6 +72,9 @@ Examples of invalid syntax:
 """
 def get_folder_components(update: Update, context) -> list[str]:
     args: list[str] = context.args
+    # args = args[0].split("/")
+
+    print("ARGS", args)
 
     if not args:
         return [update.message.from_user.username]
