@@ -4,16 +4,12 @@ from telegram.ext import Application, MessageHandler, CommandHandler, filters
 from dotenv import load_dotenv
 from gdrive import GDriveService
 import os
-from utils import get_media_files, delete_file
-# import jsonpickle
+from utils import get_media_files, delete_file, get_folder_components
 
 # write handler to accept the command "post_image"
 # async def reply(update, context):
 # async def upload_to_gdrive(folder_name: str):
 #     gdrive_link = "https://drive.google.com/drive/folders/1nn8WI7Kl4iKTxyPzgi8Z1-W5RagXlMi2"
-
-def get_folder_name():
-    return "test"
 
 async def delete_img(imgFile):
     pass
@@ -94,11 +90,21 @@ async def upload_handler(update: Update, context):
         await update.message.reply_text("Please use this command as a reply to an album or image.")
         return
     
-    await update.message.reply_text("uploading to gdrive...")
-
     # 1) get gdrive folder name
-    folder_name = get_folder_name()
+    try:
+        print("there0")
+        paths = get_folder_components(update, context)
+        print("there1")
+        print("PATHS: ", paths)
+        folder_name = paths[0]
+    except Exception as e:
+        print("Failed to get folder name:", e)
+        await update.message.reply_text('Invalid folder name. If you want a folder name with spacing, remember to start and end with double quotes (Eg. "My Folder").')
+        return
+
     created_files = []
+
+    await update.message.reply_text(f"Uploading to gdrive to folder {folder_name}...")
     
     try:
         # 2) create folder if not exists
@@ -107,7 +113,10 @@ async def upload_handler(update: Update, context):
 
         # for each file, download to server, then upload to gdrive
         media_files = get_media_files(target_msg, context)
-        for file in media_files:
+        for i in range(len(media_files)):
+            file = media_files[i]
+            await update.message.reply_text(f"Uploading {i+1}/{len(media_files)}... ")
+
             print("[upload_handler()] Downloading file...")
             await extract_and_download_image(context, download_folder, file.id, file.server_download_path)
             print("[upload_handler()] Successfully downloaded file")
@@ -117,8 +126,8 @@ async def upload_handler(update: Update, context):
             print("[upload_handler()] Successfully uploaded file")
 
             created_files.append(file)
-        
-        await update.message.reply_text("successfully uploaded to gdrive!")
+
+        await update.message.reply_text("Successfully uploaded to gdrive!")
 
         # await delete_img(imgFile) # delete file from server
     except Exception as e:
@@ -149,11 +158,11 @@ def main():
     """
     Handles the initial launch of the program (entry point).
     """
-    token = os.getenv("TOKEN")
+    token = os.getenv("BOT_TOKEN")
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    GDRIVE_ROOT_FOLDER_ID = os.getenv("GDRIVE_ROOT_FOLDER_ID")
+    # GDRIVE_ROOT_FOLDER_ID = os.getenv("GDRIVE_ROOT_FOLDER_ID")
     SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE")
-    PROJECT_ROOT = os.getenv("PROJECT_ROOT_PATH")
+    SERVER_DOWNLOAD_PATH = os.getenv("SERVER_DOWNLOAD_PATH")
 
     gdrive_service = GDriveService(SCOPES, SERVICE_ACCOUNT_FILE)
 
@@ -161,7 +170,7 @@ def main():
     # bot data (shared data)
     application.bot_data["gdrive_service"] = gdrive_service
     application.bot_data["media_group_to_msg_map"] = defaultdict(set)
-    application.bot_data["server_download_folder"] = PROJECT_ROOT + "/images"
+    application.bot_data["server_download_folder"] = SERVER_DOWNLOAD_PATH
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("upload", upload_handler)) # new command handler here
