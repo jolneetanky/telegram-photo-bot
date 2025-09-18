@@ -9,7 +9,7 @@
 
 ## How the bot works:
 
-### How the bot access photos in a particular album
+### 1) Accessing photos in a particular album
 
 When the user replies to an album and sends the `upload` command to the bot, the bot has access to the replied message.
 
@@ -175,6 +175,18 @@ Main caveat: the replied message only refers to one message (the latest one) in 
     - We can use an in-memory hash map for this: { media_group_id: Message[] }
     - CONS: potentially memory intensive. Also if the server goes down and the map is lost, unintuitive behaviour results. User would have to upload images one-by-one; can have a message to caveat this.
     - PROS: it works. And users can repeatedly upload an album (eg. to different gdrive folders), so long as the server is up.
+
+### Working with Google Drive
+
+The bot has to upload media into Google Drive. There are 2 main ways to do this:
+
+1. Create a Service Account and use it to access Google Drive.
+   - PROBLEM: This only works with Shared Drives (which are paid for, unlike the usual Personal Drives)
+2. Allow the app (ie. this bot) to use my Google account to upload images into a Folder.
+   - PROBLEM: The folder has to be shared with my gmail, for the bot to work.
+   - PROBLEM: When the bot first starts, it runs the Google OAuth flow -> opens browser window for me to login -> token generated, used to authenticate future sessions. This is all well and good until the token expires / becomes invalid. In which case, either a) `refresh_token` inside `oauth_token.json` is used automatically to generate a new token, or b) I'd have to run the OAuth flow outside of Docker (which I'm running the server in), then pass in the new token file.
+
+I went with approach 2 since I wanted this bot to work with Personal Drives.
 
 ## Expected behaviors:
 

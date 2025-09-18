@@ -45,6 +45,7 @@ class GDriveService:
         self.drive_service = get_drive_service(scopes)
 
     """
+    Private helper function.
     Returns ID of an existing folder, or None if it doesn't exist
     """
     def _get_folder(self, folder_name: str, parent_folder_id) -> list: 
@@ -65,6 +66,32 @@ class GDriveService:
                 return folder['id']
 
         return None
+
+    # returns folder ID
+    """
+    Private helper function
+    Creates a folder in Google Drive and return its ID.
+    """
+    def _create_folder(self, folder_name: str, parent_folder_id: str = None) -> str:
+        print("create_folder_if_not_exists()")
+
+        folder_metadata = {
+            'name': folder_name,
+            "mimeType": "application/vnd.google-apps.folder",
+            'parents': [parent_folder_id] if parent_folder_id else []
+        }
+
+        try:
+            created_folder = self.drive_service.files().create(
+                body=folder_metadata,
+                fields='id'
+            ).execute()
+
+            print(f'Created Folder ID: {created_folder["id"]}')
+            return created_folder["id"]
+        except Exception as e:
+            print("Failed to create folder", e)
+            raise e
 
     """
     Given a list of `folder_names` and a `root_folder_id`, creates the folder_names respecting the hierarchy (left -> right), within `root_folder_id`.
@@ -87,52 +114,17 @@ class GDriveService:
                 parent_id = self._create_folder(folder_name, parent_id)
                 continue
 
-            # create folder if it doesn't exist.
             folder_id = self._get_folder(folder_name, parent_id)
+
+            # folder exists -> continue
             if folder_id:
                 parent_id = folder_id
                 continue
 
+            # create folder if it doesn't exist.
             parent_id = self._create_folder(folder_name, parent_id)
 
         return parent_id
-
-            # if the current 
-        
-        # return self._helper(0, paths)
-
-    # returns folder ID
-    def _create_folder(self, folder_name: str, parent_folder_id: str = None) -> str:
-        print("create_folder_if_not_exists()")
-
-        # try:
-        #     folder_id = self._get_folder(folder_name, parent_folder_id)
-        #     if folder_id:
-        #         print("Folder already exists")
-        #         return folder_id
-        # except Exception as e:
-        #     print("Failed to check if folder exists: ", e)
-        #     raise e
-
-        # if folder doesn't exist, create one
-        """Create a folder in Google Drive and return its ID."""
-        folder_metadata = {
-            'name': folder_name,
-            "mimeType": "application/vnd.google-apps.folder",
-            'parents': [parent_folder_id] if parent_folder_id else []
-        }
-
-        try:
-            created_folder = self.drive_service.files().create(
-                body=folder_metadata,
-                fields='id'
-            ).execute()
-
-            print(f'Created Folder ID: {created_folder["id"]}')
-            return created_folder["id"]
-        except Exception as e:
-            print("Failed to create folder", e)
-            raise e
 
     def upload_file(self, file_path, file_name, mime_type='image/png', parent_folder_id=None):
         print("[GDriveService.upload_file()]")
@@ -141,7 +133,6 @@ class GDriveService:
         'name': file_name,
         'parents': [parent_folder_id] if parent_folder_id else []
         }
-        # media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
         media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
         try:
             file = self.drive_service.files().create(
