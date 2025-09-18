@@ -1,14 +1,11 @@
 from collections import defaultdict
-from telegram import Update, Message
+from telegram import Update, Message, User
 from telegram.ext import Application, MessageHandler, CommandHandler, filters
 from dotenv import load_dotenv
 from gdrive import GDriveService
 import os
 from utils import get_media_files, delete_file, get_folder_components
 from handlers import help_handler
-
-async def delete_img(imgFile):
-    pass
 
 async def handle_album(update: Update, context):
     messages = update.message  # actually a list of Message objects
@@ -42,8 +39,6 @@ def get_album_image_files(message: Message, image_folder_path: str) -> list[tupl
 
     return file_paths
 
-#photo=(PhotoSize(file_id='AgACAgUAAyEFAASUN-rnAAIBCmjJAta4ZmeW9eV5BJYKGf9Yy55oAAKWyzEbDeJIVsa_b2rRUlvLAQADAgADcwADNgQ', file_size=1189, file_unique_id='AQADlssxGw3iSFZ4', height=90, width=40)
-# image_folder_path DOES NOT end with a "/".
 """
 Downloadsd an image from telegram to server.
 """
@@ -73,6 +68,7 @@ Context {
 async def upload_handler(update: Update, context):
     gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
     download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
+    # TODO: instead of setting this in .env, allow caller to set.
     gdrive_parent_folder_id = os.getenv("GDRIVE_ROOT_FOLDER_ID") # TODO: maybe can pass in as argument?
 
     target_msg = update.message.reply_to_message
@@ -117,8 +113,6 @@ async def upload_handler(update: Update, context):
             created_files.append(file)
 
         await update.message.reply_text("Successfully uploaded to gdrive!")
-
-        # await delete_img(imgFile) # delete file from server
     except Exception as e:
         print("[upload()] Failed to upload images: ", e)
         await update.message.reply_text("An error occurred. Please try again.")
@@ -132,12 +126,14 @@ async def upload_handler(update: Update, context):
 async def start_handler(update: Update, context):
     await update.message.reply_text("Send me a photo, or photos! If you're unsure how to use this bot, just send /help.")
 
+"""
+When a photo is sent, if it belongs to album, add it to the hashmap `media_group_to_msg_map`.
+"""
 async def handle_media_album(update: Update, context):
     print("[handle_media_album()]")
     message = update.effective_message
     mp = context.application.bot_data["media_group_to_msg_map"]
     if message.media_group_id:
-        # this message is part of an album
         mp[message.media_group_id].add(message)
 
 def main():
@@ -149,7 +145,6 @@ def main():
     """
     token = os.getenv("BOT_TOKEN")
     SCOPES = ['https://www.googleapis.com/auth/drive']
-    # GDRIVE_ROOT_FOLDER_ID = os.getenv("GDRIVE_ROOT_FOLDER_ID")
     SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE")
     SERVER_DOWNLOAD_PATH = os.getenv("SERVER_DOWNLOAD_PATH")
 

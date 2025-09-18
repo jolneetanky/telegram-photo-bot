@@ -1,5 +1,5 @@
 import os
-from google.oauth2 import service_account
+from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -9,15 +9,19 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
+load_dotenv()
+
 """
 Builds drive service with oath credentials (so we can access user functions!)
 """
 def get_drive_service(SCOPES: list[str]):
+    TOKEN_PATH = os.getenv("GOOGLE_OAUTH_TOKEN_FILE")
+    CREDENTIALS_PATH = os.getenv("GOOGLE_OAUTH_CREDENTIALS_FILE")
     """Authenticate and return a Drive API service for the user."""
     creds = None
     # NOTE: this is wrt project root.
-    if os.path.exists('../oauth_token.json'):
-        creds = Credentials.from_authorized_user_file('../oauth_token.json', SCOPES)
+    if os.path.exists(TOKEN_PATH):
+        creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
     # refresh credits if needed
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -25,10 +29,10 @@ def get_drive_service(SCOPES: list[str]):
         else:
             # trigger auth flow
             flow = InstalledAppFlow.from_client_secrets_file(
-                '../oauth_credentials.json', SCOPES)
+                CREDENTIALS_PATH, SCOPES)
             creds = flow.run_local_server(port=0)
         # save token for reuse
-        with open('../oauth_token.json', 'w') as token:
+        with open(TOKEN_PATH, 'w') as token:
             token.write(creds.to_json())
 
     return build('drive', 'v3', credentials=creds)
@@ -38,9 +42,6 @@ class GDriveService:
         self.scopes = scopes
         self.google_service_account_file = google_service_account_file
 
-        # credentials = service_account.Credentials.from_service_account_file(google_service_account_file, scopes=scopes)
-        # self.credentials = credentials
-        # self.drive_service = build('drive', 'v3', credentials=credentials)
         self.drive_service = get_drive_service(scopes)
 
     """
