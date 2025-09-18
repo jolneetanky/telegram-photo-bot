@@ -2,6 +2,7 @@ from telegram import Message, Update, Chat
 from telegram.ext import ContextTypes
 from custom_types import MediaFile
 from exceptions import GDriveLinkNotSetError
+from gdrive.gdrive_folder import GDriveFolder
 import os
 
 class TeleUtils:
@@ -153,7 +154,7 @@ class TeleUtils:
     """
     Gets the root GDrive folder ID of the chat.
     """
-    def get_root_gdrive_folder_id(chat: Chat, context: ContextTypes.DEFAULT_TYPE) -> str:
+    def get_root_gdrive_folder(chat: Chat, context: ContextTypes.DEFAULT_TYPE) -> GDriveFolder:
         mp = context.application.bot_data["chat_to_folder_map"]
 
         if chat.id not in mp:

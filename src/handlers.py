@@ -1,10 +1,10 @@
 from telegram import Update
 from telegram.ext import ContextTypes
-from gdrive import GDriveService
+from gdrive.gdrive_service import GDriveService
 from tele_utils import tele_utils
-from utils import pretty_print, is_valid_drive_folder_link, extract_folder_id, delete_file
+from utils import delete_file
+from gdrive.gdrive_folder import GDriveFolder
 from exceptions import GDriveLinkNotSetError
-import os
 
 """
 This function handles the upload of media to GDrive.
@@ -20,6 +20,7 @@ This function handles the upload of media to GDrive.
 async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
     download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
+    chat_to_folder_map = context.application.bot_data["chat_to_folder_map"]
 
     # check if message is a reply to a photo
     target_msg = update.message.reply_to_message
@@ -28,11 +29,16 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # get root folder id based on chat
+    # chat = update.message.chat
+    # if chat.id not in chat_to_folder_map:
+    #     await update.message.reply_text("Please set a GDrive folder link, via /set_gdrive_link.")
+    #     return
+    
+    # gdrive_root_folder = chat_to_folder_map[chat.id]
     chat = update.message.chat
-    gdrive_root_folder_id = ""
 
     try:
-        gdrive_root_folder_id = tele_utils.get_root_gdrive_folder_id(chat, context)
+        gdrive_root_folder = tele_utils.get_root_gdrive_folder(chat, context)
     except GDriveLinkNotSetError:
         await update.message.reply_text("Please set a GDrive folder link, via /set_gdrive_link.")
         return
@@ -82,7 +88,7 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         # 2) create folder if not exists
         # folder_id = gdrive_service.create_folder_if_not_exists_prev(folder_name, gdrive_parent_folder_id)
-        folder_id = gdrive_service.create_folders_if_not_exists(gdrive_root_folder_id, folders)
+        folder_id = gdrive_service.create_folders_if_not_exists(gdrive_root_folder.id, folders)
         print(f"[upload_handler()] Successfully created folders. Leaf folder ID: {folder_id}")
 
         # 3) for each file, download to server, then upload to gdrive
@@ -101,7 +107,7 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             created_files.append(file)
 
-        await update.message.reply_text("Successfully uploaded to gdrive!")
+        await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(chat, context).link}!")
     except Exception as e:
         print("[upload()] Failed to upload images: ", e)
         await update.message.reply_text("An error occurred. Please try again.")
@@ -212,11 +218,13 @@ async def set_gdrive_link_handler(update: Update, context: ContextTypes.DEFAULT_
     folder_link = args[0]
     chat = update.message.chat
 
-    if not is_valid_drive_folder_link(folder_link):
+
+    if not GDriveFolder.is_valid_drive_folder_link(folder_link):
         await update.message.reply_text("Invalid link format. Please include an actual Google Drive folder link.")
         return
 
     mp = context.application.bot_data["chat_to_folder_map"]
-    mp[chat.id] = extract_folder_id(folder_link)
+    mp[chat.id] = GDriveFolder(folder_link)
+    # mp[chat.id] = extract_folder_id(folder_link)
 
     await update.message.reply_text(f"Set root GDrive folder link of this chat to {folder_link}.")
