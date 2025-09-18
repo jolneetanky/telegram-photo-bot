@@ -5,7 +5,7 @@ from gdrive.gdrive_folder import GDriveFolder
 from tele_utils import tele_utils
 from utils import delete_file
 from gdrive.gdrive_folder import GDriveFolder
-from exceptions import GDriveLinkNotSetError
+from exceptions import GDriveLinkNotSetError, CaptionIsNotCommandError, InvalidFolderPathArgError
 
 """
 This function handles the upload of media to GDrive.
@@ -25,11 +25,7 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please use this command as a reply to an album or image.")
         return
 
-    # I COPIED FROM THIS POINT ONWARDS
-    # get root folder id based on chat
     chat = update.message.chat
-    gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
-    download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
 
     try:
         gdrive_root_folder: GDriveFolder = tele_utils.get_root_gdrive_folder(chat, context)
@@ -44,48 +40,14 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print("Failed to extract arg folder components:", e)
         await update.message.reply_text('Invalid folder name. If you want a folder name with spacing, remember to start and end with double quotes (Eg. "My Folder").')
         return
-    
-    '''
-    created_files = []
 
-    await update.message.reply_text(f"Uploading to gdrive to folder {'/'.join(folders)}...")
-    
-    try:
-        # 2) create folder if not exists
-        # folder_id = gdrive_service.create_folder_if_not_exists_prev(folder_name, gdrive_parent_folder_id)
-        folder_id = gdrive_service.create_folders_if_not_exists(gdrive_root_folder.id, folders)
-        print(f"[upload_handler()] Successfully created folders. Leaf folder ID: {folder_id}")
-
-        # 3) for each file, download to server, then upload to gdrive
-        media_files = tele_utils.get_media_files_from_message(target_msg, context)
-        for i in range(len(media_files)):
-            file = media_files[i]
-            await update.message.reply_text(f"Uploading {i+1}/{len(media_files)}... ")
-
-            print("[upload_handler()] Downloading file...")
-            await tele_utils.download_image_to_server(context, download_folder, file.id, file.server_download_path)
-            print("[upload_handler()] Successfully downloaded file")
-
-            print("[upload_handler()] Uploading file...")
-            gdrive_service.upload_file(file.server_download_path, file.name, "image/jpg", folder_id)
-            print("[upload_handler()] Successfully uploaded file")
-
-            created_files.append(file)
-        
-        await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(chat, context).link}!")
-        '''
+    # 2) Upload images in `target_msg` to drive.
     try:
         await tele_utils.upload_to_drive(target_msg, context, folders, gdrive_root_folder)
         await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(chat, context).link}!")
     except Exception as e:
         print("[upload()] Failed to upload images: ", e)
         await update.message.reply_text("An error occurred. Please try again.")
-
-    # finally:
-    #     print("[upload_handler()] Deleting files...")
-    #     for file in created_files:
-    #         delete_file(file)
-    #     print("[upload_handler()] Successfully deleted files")
 
 """
 When a photo is sent, if it belongs to album, add it to the hashmap `media_group_to_msg_map`.
@@ -100,9 +62,21 @@ async def handle_media_album(update: Update, context):
     if message.media_group_id:
         mp[message.media_group_id].add(message)
 
-    folders = tele_utils.extract_caption_folder_components(update.message.caption)
-    if not folders:
+    folders = []
+    try:
+        folders = tele_utils.extract_caption_folder_components(update.message.caption)
+    except CaptionIsNotCommandError:
+        print("CAPTION IS NOT COMMAND")
+        return # we don't want this function to do anything cause our caption is not a command.
+    except InvalidFolderPathArgError as e:
+        await update.message.reply_text(e.message)
         return
+    except Exception as e:
+        print("Failed to extract caption folder components:", e)
+        await update.message.reply_text('Invalid folder name. If you want a folder name with spacing, remember to start and end with double quotes (Eg. "My Folder").')
+        return
+    
+    print("FOLDERS:", folders)
 
     # get gdrive root folder
     gdrive_root_folder = None
@@ -143,7 +117,6 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         (Eg. `/upload "spacing 1" nospacing "spacing 2"` -> `root/"spacing 1"/nospacing/"spacing 2").
 
 """
-
     await update.message.reply_text(help_text, parse_mode="markdown")
 
 """
@@ -167,6 +140,5 @@ async def set_gdrive_link_handler(update: Update, context: ContextTypes.DEFAULT_
 
     mp = context.application.bot_data["chat_to_folder_map"]
     mp[chat.id] = GDriveFolder(folder_link)
-    # mp[chat.id] = extract_folder_id(folder_link)
 
     await update.message.reply_text(f"Set root GDrive folder link of this chat to {folder_link}.")
