@@ -1,8 +1,11 @@
+from typing import Optional
 from telegram import Message, Update, Chat
 from telegram.ext import ContextTypes
 from custom_types import MediaFile
 from exceptions import GDriveLinkNotSetError
 from gdrive.gdrive_folder import GDriveFolder
+from gdrive.gdrive_service import GDriveService
+from utils import delete_file
 import os
 
 class TeleUtils:
@@ -32,7 +35,6 @@ class TeleUtils:
             raise Exception("Please use this command as a reply to an album or image.")
 
         media_group_to_msg_map = context.application.bot_data["media_group_to_msg_map"]
-        print("HIII", msg.media_group_id, media_group_to_msg_map)
         media_group_id = str(msg.media_group_id)
         download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
 
@@ -152,6 +154,14 @@ class TeleUtils:
 
         return paths
 
+    # Extracts folder components from caption.
+    # Returns None if caption doesn't start with "/upload".
+    def extract_caption_folder_components(caption: str) -> Optional[list[str]]:
+        if not caption.startswith("/upload"):
+            return None
+        
+        return ["test 1", "test 2"]
+
     """
     Gets the root GDrive folder ID of the chat.
     """
@@ -162,5 +172,66 @@ class TeleUtils:
             raise GDriveLinkNotSetError
         
         return mp[chat.id]
+
+    """
+    Uploads everything in the same album as `message` to the chat.
+    """ 
+    async def upload_to_drive(message: Message, context: ContextTypes.DEFAULT_TYPE, folders: list[str], gdrive_root_folder: GDriveFolder):
+        chat = message.chat
+        gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
+        download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
+
+        # try:
+        #     gdrive_root_folder: GDriveFolder = tele_utils.get_root_gdrive_folder(chat, context)
+        # except GDriveLinkNotSetError:
+        #     await message.reply_text("Please set a GDrive folder link, via /set_link <link>.")
+        #     return
+
+        # 1) Extract folder components from arguments
+        # try:
+        #     folders = tele_utils.extract_arg_folder_components(update, context)
+        # except Exception as e:
+        #     print("Failed to extract arg folder components:", e)
+        #     await update.message.reply_text('Invalid folder name. If you want a folder name with spacing, remember to start and end with double quotes (Eg. "My Folder").')
+        #     return
+
+        created_files = []
+
+        await message.reply_text(f"Uploading to gdrive to folder {'/'.join(folders)}...")
+        
+        try:
+            # 2) create folder if not exists
+            # folder_id = gdrive_service.create_folder_if_not_exists_prev(folder_name, gdrive_parent_folder_id)
+            await message.reply_text("Creating folders on Google Drive if they don't exist...")
+            folder_id = gdrive_service.create_folders_if_not_exists(gdrive_root_folder.id, folders)
+            print(f"[upload_handler()] Successfully created folders. Leaf folder ID: {folder_id}")
+
+            # 3) for each file, download to server, then upload to gdrive
+            media_files = tele_utils.get_media_files_from_message(message, context)
+            for i in range(len(media_files)):
+                file = media_files[i]
+                await message.reply_text(f"Uploading {i+1}/{len(media_files)}... ")
+
+                print("[upload_handler()] Downloading file...")
+                await tele_utils.download_image_to_server(context, download_folder, file.id, file.server_download_path)
+                print("[upload_handler()] Successfully downloaded file")
+
+                print("[upload_handler()] Uploading file...")
+                gdrive_service.upload_file(file.server_download_path, file.name, "image/jpg", folder_id)
+                print("[upload_handler()] Successfully uploaded file")
+
+                created_files.append(file)
+            
+            # await message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(chat, context).link}!")
+            # except Exception as e:
+            #     print("[upload()] Failed to upload images: ", e)
+            #     await message.reply_text("An error occurred. Please try again.")
+        finally:
+            # clean up created files
+            print("[upload_handler()] Deleting files...")
+            for file in created_files:
+                delete_file(file)
+            print("[upload_handler()] Successfully deleted files")
+
     
 tele_utils = TeleUtils

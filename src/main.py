@@ -5,20 +5,12 @@ from dotenv import load_dotenv
 from gdrive.gdrive_service import GDriveService
 from gdrive.gdrive_folder import GDriveFolder
 import os
-from handlers import help_handler, upload_handler, set_gdrive_link_handler
+from handlers import help_handler, upload_handler, set_gdrive_link_handler, handle_media_album
+from tele_utils import tele_utils
 
 async def start_handler(update: Update, context):
     await update.message.reply_text("Send me a photo, or photos! If you're unsure how to use this bot, just send /help.")
 
-"""
-When a photo is sent, if it belongs to album, add it to the hashmap `media_group_to_msg_map`.
-"""
-async def handle_media_album(update: Update, context):
-    print("[handle_media_album()]")
-    message = update.effective_message
-    mp = context.application.bot_data["media_group_to_msg_map"]
-    if message.media_group_id:
-        mp[message.media_group_id].add(message)
 
 def main():
     # Load environment variables from .env file

@@ -19,17 +19,17 @@ This function handles the upload of media to GDrive.
 6. Delete the files that were downloaded onto the server. This cleanup happens whether the above ran successfully, and also runs in case of exceptions.
 """
 async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
-    download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
-
     # check if message is a reply to a photo
     target_msg = update.message.reply_to_message
     if not target_msg or not target_msg.photo:
         await update.message.reply_text("Please use this command as a reply to an album or image.")
         return
 
+    # I COPIED FROM THIS POINT ONWARDS
     # get root folder id based on chat
     chat = update.message.chat
+    gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
+    download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
 
     try:
         gdrive_root_folder: GDriveFolder = tele_utils.get_root_gdrive_folder(chat, context)
@@ -44,7 +44,8 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print("Failed to extract arg folder components:", e)
         await update.message.reply_text('Invalid folder name. If you want a folder name with spacing, remember to start and end with double quotes (Eg. "My Folder").')
         return
-
+    
+    '''
     created_files = []
 
     await update.message.reply_text(f"Uploading to gdrive to folder {'/'.join(folders)}...")
@@ -70,43 +71,80 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             print("[upload_handler()] Successfully uploaded file")
 
             created_files.append(file)
-
+        
+        await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(chat, context).link}!")
+        '''
+    try:
+        await tele_utils.upload_to_drive(target_msg, context, folders, gdrive_root_folder)
         await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(chat, context).link}!")
     except Exception as e:
         print("[upload()] Failed to upload images: ", e)
         await update.message.reply_text("An error occurred. Please try again.")
 
-    finally:
-        print("[upload_handler()] Deleting files...")
-        for file in created_files:
-            delete_file(file)
-        print("[upload_handler()] Successfully deleted files")
+    # finally:
+    #     print("[upload_handler()] Deleting files...")
+    #     for file in created_files:
+    #         delete_file(file)
+    #     print("[upload_handler()] Successfully deleted files")
+
+"""
+When a photo is sent, if it belongs to album, add it to the hashmap `media_group_to_msg_map`.
+If there's a caption and the caption starts with "/upload", we're gonna upload it.
+"""
+async def handle_media_album(update: Update, context):
+    print("[handle_media_album()]")
+    message = update.effective_message
+    mp = context.application.bot_data["media_group_to_msg_map"]
+    # TODO: implement cache logic
+    # add to hashmap
+    if message.media_group_id:
+        mp[message.media_group_id].add(message)
+
+    folders = tele_utils.extract_caption_folder_components(update.message.caption)
+    if not folders:
+        return
+
+    # get gdrive root folder
+    gdrive_root_folder = None
+    try:
+        gdrive_root_folder: GDriveFolder = tele_utils.get_root_gdrive_folder(update.message.chat, context)
+    except GDriveLinkNotSetError:
+        await update.message.reply_text("Please set a GDrive folder link, via /set_link <link>.")
+        return
+
+    try:
+        await tele_utils.upload_to_drive(update.message, context, folders, gdrive_root_folder)
+        await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(update.message.chat, context).link}!")
+    except Exception as e:
+        print("[upload()] Failed to upload images: ", e)
+        await update.message.reply_text("An error occurred. Please try again.")
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = """
-<b>Welcome to tele_photo_bot! 🎉</b>\n
-You can use me to upload photos (and videos… but that's a WIP) to Google Drive.\n\n
+    *Welcome to tele/_photo/_bot!*
 
-<b>1.</b> To upload an album, simply <b>send your photos</b> here in this chat.\n
-<b>2.</b> Next, <b>reply to the album/photo</b> you want to upload, and send the command: <code>/upload</code>.\n
-    This will create a folder with your Telegram username, and the photos will be uploaded there.\n
-<b>3.</b> <b>Specifying a folder</b> — if you want to specify a particular folder name, simply do:\n
-<code>/upload &lt;folder_name&gt;</code>\n
-    (Eg. <code>/upload myfolder</code> → creates the folder titled <code>myfolder</code> in Drive if it doesn't already exist.)\n\n
+    You can use me to upload photos (and videos… but that's a WIP) to Google Drive.
 
-— If you want the folder name to have spacing (eg. <code>my folder</code>), just include double quotes before and after.\n
-    Example: <code>/upload "my folder"</code>\n\n
+    *TO START:*
+    `/set_link <link>`:
+    - *sets the Google Drive folder link you'd like to upload your photos to*. 
+    - Subsequent uploads in this chat will be made to the specified folder. Applies to group chats too.
 
-<b>(SLIGHTLY MORE) ADVANCED FEATURES:</b>\n
-<b>UPLOADING FILES TO NESTED FOLDERS:</b>\n
-— If you want to upload a file to a nested folder, eg. <code>folder1/folder2/folder3</code>, you need to specify the paths <b>in order</b> like so:\n
-<code>/upload folder1 folder2 folder3</code>\n\n
+    *UPLOADING A PHOTO/ALBUM*
+    1. To upload a photo/album, simply *send your photos here in the chat.*
+    2. Next, *reply to the album/photo you want to upload*, and send the command: `/upload`. This will simply upload the files into the folder link you set in `set_link`.
+    3. If you want to specify default folders *within the folder you set*, refer below.
+    
+    *SPECIFYING DEFAULT FOLDER PATHS*
+    (*NOTE:* In these examples, `root` refers to the root folder, ie. the one we set using `/set_link`.)
+    1. *For nested paths*, just add a spacing in between each path. 
+        (Eg. `/upload folder1 folder2` -> `root/folder1/folder2`
+    2. *For folder names with spacing*, simply wrap the name in double quotes. 
+        (Eg. `/upload "spacing 1" nospacing "spacing 2"` -> `root/"spacing 1"/nospacing/"spacing 2").
 
-<b>MORE EXAMPLES:</b>\n
-— <code>/upload Alice "John Doe" Mary</code> → creates file in folder <code>Alice/"John Doe"/Mary</code>.
 """
 
-    await update.message.reply_text(help_text, parse_mode="HTML")
+    await update.message.reply_text(help_text, parse_mode="markdown")
 
 """
 Sets the GDrive link for a particular chat.
