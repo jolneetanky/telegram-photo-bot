@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 from gdrive.gdrive_service import GDriveService
+from gdrive.gdrive_folder import GDriveFolder
 from tele_utils import tele_utils
 from utils import delete_file
 from gdrive.gdrive_folder import GDriveFolder
@@ -20,7 +21,6 @@ This function handles the upload of media to GDrive.
 async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
     download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
-    chat_to_folder_map = context.application.bot_data["chat_to_folder_map"]
 
     # check if message is a reply to a photo
     target_msg = update.message.reply_to_message
@@ -29,50 +29,14 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # get root folder id based on chat
-    # chat = update.message.chat
-    # if chat.id not in chat_to_folder_map:
-    #     await update.message.reply_text("Please set a GDrive folder link, via /set_gdrive_link.")
-    #     return
-    
-    # gdrive_root_folder = chat_to_folder_map[chat.id]
     chat = update.message.chat
 
     try:
-        gdrive_root_folder = tele_utils.get_root_gdrive_folder(chat, context)
+        gdrive_root_folder: GDriveFolder = tele_utils.get_root_gdrive_folder(chat, context)
     except GDriveLinkNotSetError:
-        await update.message.reply_text("Please set a GDrive folder link, via /set_gdrive_link.")
+        await update.message.reply_text("Please set a GDrive folder link, via /set_link <link>.")
         return
 
-    # except PersonalGDriveLinkNotSetError:
-    #     await update.message.reply_text("Please set a personal root GDrive folder link, via /set_gdrive_link_personal.")
-    #     return
-    # except GroupGDriveLinkNotSetError:
-    #     await update.message.reply_text("Please set a root GDrive folder for this group chat, via /set_gdrive_link_group.")
-    #     return
-    # except Exception as e:
-    #     await update.message.reply_text("An unexpected error occured.")
-    #     return
-
-    # chat_id = update.message.chat.id
-    # chat_type = update.message.chat.type
-
-    # # 1. Get the chat_to_folder_map for the corresponding chat type.
-    # if chat_type == "private":
-    #     chat_to_folder_map = context.application.bot_data["private_chat_to_folder_map"]
-    # else:
-    #     chat_to_folder_map = context.application.bot_data["group_chat_to_folder_map"]
-
-    # if chat_id not in chat_to_folder_map:
-    #     if chat_type == "private":
-    #         await update.message.reply_text("Please set a personal root GDrive folder link, via /set_gdrive_link_personal.")
-    #     else:
-    #         await update.message.reply_text("Please set a root GDrive folder for this group chat, via /set_gdrive_link_group.")
-    #     return
-
-    # 2. Obtain the (set) parent folder ID based on chat ID. 
-    # gdrive_parent_folder_id = chat_to_folder_map[chat_id]
-
-    
     # 1) Extract folder components from arguments
     try:
         folders = tele_utils.extract_arg_folder_components(update, context)
@@ -145,66 +109,6 @@ You can use me to upload photos (and videos… but that's a WIP) to Google Drive
     await update.message.reply_text(help_text, parse_mode="HTML")
 
 """
-Sets the gdrive root folder for personal use.
-Once set, all requests sent between the user and bot private chat will go to that particular drive.
-
-This command can be send from any type of chat - private or group.
-"""
-# async def set_root_folder_personal_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     chat = update.message.chat
-#     username = update.message.from_user.username
-
-#     args = context.args 
-#     # if no argument passed in
-#     if not args:
-#         await update.message.reply_text("Plase include a Google Drive folder link.")
-#         return
-
-#     folder_link = args[0]
-
-#     # if invalid folder link
-#     if not is_valid_drive_folder_link(folder_link):
-#         await update.message.reply_text("Invalid link format. Please include an actual Google Drive folder link.")
-#         return
-
-#     mp = context.application.bot_data["private_chat_to_folder_map"]
-#     mp[chat.id] = extract_folder_id(folder_link)
-
-#     await update.message.reply_text(f"Set root GDrive folder link of {username} to {folder_link}.")
-    
-"""
-Sets the gdrive root folder for a group.
-Once set, all requests from this group will go to that particular drive.
-
-Edge cases / when exceptions are thrown:
-1. User calls this command from within a private chat.
-"""
-# async def set_root_folder_group_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     chat = update.message.chat
-#     # if command sent from private chat with bot
-#     if chat.type == "private":
-#         await update.message.reply_text("You can only use this command in a group chat.")
-#         return
-
-#     args = context.args 
-#     # if no argument passed in
-#     if not args:
-#         await update.message.reply_text("Plase include a Google Drive folder link.")
-#         return
-
-#     folder_link = args[0]
-
-#     # if invalid folder link
-#     if not is_valid_drive_folder_link(folder_link):
-#         await update.message.reply_text("Invalid link format. Please include an actual Google Drive folder link.")
-#         return
-
-#     mp = context.application.bot_data["group_chat_to_folder_map"]
-#     mp[chat.id] = extract_folder_id(folder_link)
-
-#     await update.message.reply_text(f"Set root GDrive folder link of this group chat to {folder_link}.")
-
-"""
 Sets the GDrive link for a particular chat.
 Subsequent uploads will go to this GDrive link.
 """
@@ -212,7 +116,7 @@ async def set_gdrive_link_handler(update: Update, context: ContextTypes.DEFAULT_
     args = context.args 
     # if no argument passed in
     if not args:
-        await update.message.reply_text("Plase include a Google Drive folder link. Eg. /set_gdrive_link https://drive.google.com/1234)")
+        await update.message.reply_text("Plase include a Google Drive folder link. Eg. /set_link https://drive.google.com/1234)")
         return
 
     folder_link = args[0]

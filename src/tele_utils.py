@@ -86,7 +86,8 @@ class TeleUtils:
         print("ARGS", args)
 
         if not args:
-            return [update.message.from_user.username]
+            # return [update.message.from_user.username]
+            return []
 
         paths = [] 
         start_idx = -1 # -1 indicates no current start_idx. If == -1, it means we have no starting " yet.

@@ -100,12 +100,12 @@ class GDriveService:
     TEST CASES:
     1. `root_folder_id` passed in -> should create the nested folder_names in root_folder_id.
     2. `root_folder_id` not passed in -> should create the folders as they are, ultimately creating a new root folder.
-    3. if `folder_names` is empty, nothing happens.
+    3. if `folder_names` is empty -> return `root_folder_id` as the leaf ID.
     """
     def create_folders_if_not_exists(self, root_folder_id, folder_names: list[str] = []) -> str:
         if not folder_names:
             print("[get_leaf_folder_id()] No paths to create folders for.")
-            return
+            return root_folder_id # root_folder_id is the leaf now
 
         parent_id = root_folder_id
 

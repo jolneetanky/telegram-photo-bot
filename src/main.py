@@ -43,8 +43,8 @@ def main():
 
     application.add_handler(CommandHandler("start", start_handler))
     application.add_handler(CommandHandler("help", help_handler))
+    application.add_handler(CommandHandler("set_link", set_gdrive_link_handler))
     application.add_handler(CommandHandler("upload", upload_handler)) # new command handler here
-    application.add_handler(CommandHandler("set_gdrive_link", set_gdrive_link_handler))
     application.add_handler(MessageHandler(filters.PHOTO, handle_media_album))
     print("Telegram Bot started!", flush=True)
 
