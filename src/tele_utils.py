@@ -162,74 +162,6 @@ class TeleUtils:
         args: list[str] = context.args
 
         return TeleUtils._extract_folder_components(args)
-        # print("ARGS", args)
-
-        # if not args:
-        #     # return [update.message.from_user.username]
-        #     return []
-
-        # paths = [] 
-        # start_idx = -1 # -1 indicates no current start_idx. If == -1, it means we have no starting " yet.
-        # i = 0 # this is the current index in `args` we are looking at
-        # cur_word = []
-
-        # while i < len(args):
-        #     # if " in invalid position, raise exception
-        #     for idx in range(len(args[i])):
-        #         if args[i][idx] == '"' and (idx > 0 and idx < len(args[i]) - 1):
-        #             raise Exception("Quotation in invalid position")
-                
-        #     # if standalone quotation, just add the word and continue 
-        #     if args[i].startswith('"') and args[i].endswith('"'):
-        #         cur_word.append(args[i][1:len(args[i]) - 1]) # omit start and end quotation
-        #         paths.append(" ".join(cur_word))
-        #         cur_word = []
-        #         i += 1
-        #         continue
-
-        #     # ok so now we handle all the other cases
-        #     # ie. 1) quotation mark at start
-        #     # 2) quotation mark at end
-        #     # no quotation marks
-
-        #     if args[i].startswith('"'):
-        #         if start_idx == -1:
-        #             start_idx = i
-        #             cur_word.append(args[i][1:]) # omit the start "
-        #         else:
-        #             print(f"[get_arg_folder_components()] invalid end quotation")
-        #             raise Exception("Invalid end quotation")
-
-        #         i += 1
-        #         continue
-
-        #     elif args[i].endswith('"'):
-        #         if start_idx == -1:
-        #             print(f"[get_arg_folder_components()] no matching start quotation")
-        #             raise Exception("No matching start quotation")
-        #         else:
-        #             cur_word.append(args[i][:len(args[i]) - 1]) # omit the end "
-        #             paths.append(" ".join(cur_word))
-        #             cur_word = []
-        #             start_idx = -1 # reset start idx
-
-        #         i += 1
-        #         continue
-
-        #     # else, no quotations; we can just add into cur_word.
-        #     if start_idx == -1:
-        #         # no start idx, this is a standalone word. Just take it as a path and continue
-        #         paths.append(args[i])
-        #     else:
-        #         cur_word.append(args[i]) # part of an ongoing word, append to `cur_word` and continue
-
-        #     i += 1
-
-        # # at the end, if start_idx != -1 (meaning someone hasn't been completed yet) -> raise exception.
-        # if start_idx != -1:
-        #     raise Exception("No matching end quotation") 
-
-        # return paths
 
     # Extracts folder components from caption.
     # Returns None if caption doesn't start with "/upload".
@@ -257,27 +189,13 @@ class TeleUtils:
         return mp[chat.id]
 
     """
-    Uploads everything in the same album as `message` to the chat.
+    Uploads everything in the same album as (and including) `message` to Drive.
     """ 
     @staticmethod
     async def upload_to_drive(message: Message, context: ContextTypes.DEFAULT_TYPE, folders: list[str], gdrive_root_folder: GDriveFolder):
         chat = message.chat
         gdrive_service: GDriveService = context.application.bot_data["gdrive_service"]
         download_folder = context.application.bot_data["server_download_folder"] # folder to download images onto server
-
-        # try:
-        #     gdrive_root_folder: GDriveFolder = tele_utils.get_root_gdrive_folder(chat, context)
-        # except GDriveLinkNotSetError:
-        #     await message.reply_text("Please set a GDrive folder link, via /set_link <link>.")
-        #     return
-
-        # 1) Extract folder components from arguments
-        # try:
-        #     folders = tele_utils.extract_arg_folder_components(update, context)
-        # except Exception as e:
-        #     print("Failed to extract arg folder components:", e)
-        #     await update.message.reply_text('Invalid folder name. If you want a folder name with spacing, remember to start and end with double quotes (Eg. "My Folder").')
-        #     return
 
         created_files = []
 
@@ -305,11 +223,7 @@ class TeleUtils:
                 print("[upload_handler()] Successfully uploaded file")
 
                 created_files.append(file)
-            
-            # await message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(chat, context).link}!")
-            # except Exception as e:
-            #     print("[upload()] Failed to upload images: ", e)
-            #     await message.reply_text("An error occurred. Please try again.")
+
         finally:
             # clean up created files
             print("[upload_handler()] Deleting files...")
@@ -317,5 +231,19 @@ class TeleUtils:
                 delete_file(file)
             print("[upload_handler()] Successfully deleted files")
 
+    """
+    `msg` - message containing media.
+
+    Given the message CONTAINING THE MEDIA, updates our cache. (Ie. the in-memory component storing media groups)
+    for now it simply deletes the corresponding `media_group_to_msg` from `media_group_to_msg_map`.
+
+    Later on we can extend to actually incorporate cache functionality (eg. LRU or something)
+    """
+    @staticmethod
+    def update_cache(msg: Message, context: ContextTypes.DEFAULT_TYPE):
+        media_group_to_msg_map = context.application.bot_data["media_group_to_msg_map"]
+        
+        if msg.media_group_id in media_group_to_msg_map:
+            del media_group_to_msg_map[msg.media_group_id]
     
 tele_utils = TeleUtils

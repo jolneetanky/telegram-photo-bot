@@ -38,13 +38,16 @@ async def upload_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         folders = tele_utils.extract_arg_folder_components(update, context)
     except Exception as e:
         print("Failed to extract arg folder components:", e)
-        await update.message.reply_text('Invalid folder name. If you want a folder name with spacing, remember to start and end with double quotes (Eg. "My Folder").')
+        await update.message.reply_text('Invalid folder name. Send /help for how to format folder names.')
         return
 
     # 2) Upload images in `target_msg` to drive.
     try:
         await tele_utils.upload_to_drive(target_msg, context, folders, gdrive_root_folder)
         await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(chat, context).link}!")
+
+        # NOTE: for now, we just delete from cache
+        tele_utils.update_cache(target_msg, context)
     except Exception as e:
         print("[upload()] Failed to upload images: ", e)
         await update.message.reply_text("An error occurred. Please try again.")
@@ -56,6 +59,7 @@ If there's a caption and the caption starts with "/upload", we're gonna upload i
 async def handle_media_album(update: Update, context):
     print("[handle_media_album()]")
     message = update.effective_message
+
     mp = context.application.bot_data["media_group_to_msg_map"]
     # TODO: implement cache logic
     # add to hashmap
@@ -63,8 +67,9 @@ async def handle_media_album(update: Update, context):
         mp[message.media_group_id].add(message)
 
     folders = []
+    target_msg = update.message # message containing the photo
     try:
-        folders = tele_utils.extract_caption_folder_components(update.message.caption)
+        folders = tele_utils.extract_caption_folder_components(target_msg.caption)
     except CaptionIsNotCommandError:
         print("CAPTION IS NOT COMMAND")
         return # we don't want this function to do anything cause our caption is not a command.
@@ -73,7 +78,7 @@ async def handle_media_album(update: Update, context):
         return
     except Exception as e:
         print("Failed to extract caption folder components:", e)
-        await update.message.reply_text('Invalid folder name. If you want a folder name with spacing, remember to start and end with double quotes (Eg. "My Folder").')
+        await update.message.reply_text('Invalid folder name. Send /help for how to format folder names.')
         return
     
     print("FOLDERS:", folders)
@@ -81,14 +86,15 @@ async def handle_media_album(update: Update, context):
     # get gdrive root folder
     gdrive_root_folder = None
     try:
-        gdrive_root_folder: GDriveFolder = tele_utils.get_root_gdrive_folder(update.message.chat, context)
+        gdrive_root_folder: GDriveFolder = tele_utils.get_root_gdrive_folder(target_msg.chat, context)
     except GDriveLinkNotSetError:
         await update.message.reply_text("Please set a GDrive folder link, via /set_link <link>.")
         return
 
     try:
-        await tele_utils.upload_to_drive(update.message, context, folders, gdrive_root_folder)
-        await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(update.message.chat, context).link}!")
+        await tele_utils.upload_to_drive(target_msg, context, folders, gdrive_root_folder)
+        await update.message.reply_text(f"Successfully uploaded to gdrive at {tele_utils.get_root_gdrive_folder(target_msg.chat, context).link}!")
+        tele_utils.update_cache(target_msg, context)
     except Exception as e:
         print("[upload()] Failed to upload images: ", e)
         await update.message.reply_text("An error occurred. Please try again.")
@@ -106,8 +112,12 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     *UPLOADING A PHOTO/ALBUM*
     1. To upload a photo/album, simply *send your photos here in the chat.*
-    2. Next, *reply to the album/photo you want to upload*, and send the command: `/upload`. This will simply upload the files into the folder link you set in `set_link`.
+    2. Either:
+        a) Directly send command `/upload` *in the caption*. Or
+        b) Reply to the message with the command `/upload`.
     3. If you want to specify default folders *within the folder you set*, refer below.
+
+    # *NOTE:* Once you upload an album, trying to upload it again (eg. by replying to it) will only upload ONE photo in the album. WIP to fix this.
     
     *SPECIFYING DEFAULT FOLDER PATHS*
     (*NOTE:* In these examples, `root` refers to the root folder, ie. the one we set using `/set_link`.)
