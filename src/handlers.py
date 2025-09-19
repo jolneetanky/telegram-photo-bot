@@ -101,33 +101,64 @@ async def handle_media_album(update: Update, context):
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = """
-    *Welcome to tele/_photo/_bot!*
+*__🟢 TO START:__*
 
-    You can use me to upload photos (and videos… but that's a WIP) to Google Drive.
+`/set_link <link>`
 
-    *TO START:*
-    `/set_link <link>`:
-    - *sets the Google Drive folder link you'd like to upload your photos to*. 
-    - Subsequent uploads in this chat will be made to the specified folder. Applies to group chats too.
+\- *sets the Google Drive folder link you'd like to upload your photos to*\. 
 
-    *UPLOADING A PHOTO/ALBUM*
-    1. To upload a photo/album, simply *send your photos here in the chat.*
-    2. Either:
-        a) Directly send command `/upload` *in the caption*. Or
-        b) Reply to the message with the command `/upload`.
-    3. If you want to specify default folders *within the folder you set*, refer below.
+\- Subsequent uploads in this chat will be made to the specified folder\.
 
-    # *NOTE:* Once you upload an album, trying to upload it again (eg. by replying to it) will only upload ONE photo in the album. WIP to fix this.
-    
-    *SPECIFYING DEFAULT FOLDER PATHS*
-    (*NOTE:* In these examples, `root` refers to the root folder, ie. the one we set using `/set_link`.)
-    1. *For nested paths*, just add a spacing in between each path. 
-        (Eg. `/upload folder1 folder2` -> `root/folder1/folder2`
-    2. *For folder names with spacing*, simply wrap the name in double quotes. 
-        (Eg. `/upload "spacing 1" nospacing "spacing 2"` -> `root/"spacing 1"/nospacing/"spacing 2").
+\- *_You can always reset the link anytime\._*
 
-"""
-    await update.message.reply_text(help_text, parse_mode="markdown")
+*__☁️ UPLOADING A PHOTO/ALBUM__*
+
+1\. To upload a photo/album, simply *send your photos here in the chat\.*
+
+2\. *__Either:__*
+a\) _Directly send_ command `/upload` *in the caption*\. OR
+b\) _Reply to the message_ with the command `/upload`\.
+
+3\. If you want to specify a custom folder to upload to \(*within the folder you set*\), refer below\.
+
+>*NOTE:* 
+>Once you upload an album, trying to upload it again \(eg\. by replying to it\) will only upload ONE photo \(the last photo\) in the album\. WIP to fix this\.
+
+*__📂 SPECIFYING CUSTOM FOLDER PATHS__*
+
+1\. *__Nested Paths__*
+
+Just add a spacing in between each path\. 
+
+>*__EXAMPLE__:*
+>
+>`/upload folder1 folder2`
+>
+>is equivalent to
+>
+>`/upload https://drive.google.com/1234/folder1/folder2`\.||
+
+2\. *__Folder Names with Spacing__*
+
+Simply wrap the name in double quotes\. 
+
+>*__EXAMPLE__:*
+>
+>`/upload "spacing 1" nospacing "spacing 2"` 
+>
+>is equivalent to
+>
+>`/upload https://drive.google.com/1234/"spacing 1"/nospacing/"spacing 2"`\.||
+
+*__👥 USAGE IN GROUP CHATS__*
+
+You can add this bot to any of your group chats\. Usage is exactly is the same as above\.
+
+After setting the GDrive link, subsequent uploads in the group chat will be made to the specified folder\. 
+
+Same as before, *_you can always reset the link anytime\._*
+    """
+    await update.message.reply_text(help_text, parse_mode="markdownV2")
 
 """
 Sets the GDrive link for a particular chat.

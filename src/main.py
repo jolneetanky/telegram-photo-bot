@@ -9,7 +9,14 @@ from handlers import help_handler, upload_handler, set_gdrive_link_handler, hand
 from tele_utils import tele_utils
 
 async def start_handler(update: Update, context):
-    await update.message.reply_text("Send me a photo, or photos! If you're unsure how to use this bot, just send /help.")
+    start_text = """
+*Welcome to tele\_photo\_bot\! 😁*
+
+You can use me to upload photos ||\(and videos… but that's a WIP\)|| to Google Drive\.
+
+If you're unsure how to use this bot, just send /help\.
+"""
+    await update.message.reply_text(start_text, parse_mode="markdownV2")
 
 
 def main():
