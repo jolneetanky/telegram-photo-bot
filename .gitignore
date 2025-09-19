@@ -1,5 +1,6 @@
 .env
 venv/
 images/
+etc/
 oauth_credentials.json
 oauth_token.json

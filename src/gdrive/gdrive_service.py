@@ -1,3 +1,4 @@
+import shutil
 import os
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
@@ -20,8 +21,18 @@ def get_drive_service(SCOPES: list[str]):
     """Authenticate and return a Drive API service for the user."""
     creds = None
     # NOTE: this is wrt project root.
-    if os.path.exists(TOKEN_PATH):
+
+    token_file = TOKEN_PATH
+    # On Render, /etc/secrets is read-only → copy seed token file to a writable location (/app)
+    if token_file and token_file.startswith("/etc/secrets/"):
+        writable_token_file = "/app/oauth_token.json"
+        if not os.path.exists(writable_token_file) and os.path.exists(token_file):
+            shutil.copy(token_file, writable_token_file)
+        token_file = writable_token_file
+
+    if TOKEN_PATH and os.path.exists(TOKEN_PATH):
         creds = Credentials.from_authorized_user_file(TOKEN_PATH, SCOPES)
+
     # refresh credits if needed
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
