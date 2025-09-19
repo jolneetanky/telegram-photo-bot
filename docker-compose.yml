@@ -1,0 +1,14 @@
+services:
+  telegram-photo-bot:
+    build: .
+    container_name: telegram-photo-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Mount secrets into the container (don’t bake into the image)
+      - ./oauth_credentials.json:/app/oauth_credentials.json:ro
+      - ./oauth_token.json:/app/oauth_token.json:rw
+      # Optional: persist images folder locally if needed
+      - ./images:/app/images
+    command: ["python", "-m", "src.main"]

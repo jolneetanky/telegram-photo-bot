@@ -1,9 +1,6 @@
-from telegram import Message, Update
-from custom_types import MediaFile
+from src.custom_types import MediaFile
 import json
 import os
-import re
-from typing import Optional
 
 """
 Deletes a file from server.

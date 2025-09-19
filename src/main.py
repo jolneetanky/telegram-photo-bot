@@ -2,11 +2,10 @@ from collections import defaultdict
 from telegram import Update
 from telegram.ext import Application, MessageHandler, CommandHandler, filters
 from dotenv import load_dotenv
-from gdrive.gdrive_service import GDriveService
-from gdrive.gdrive_folder import GDriveFolder
+from src.gdrive.gdrive_service import GDriveService
+from src.gdrive.gdrive_folder import GDriveFolder
 import os
-from handlers import help_handler, upload_handler, set_gdrive_link_handler, handle_media_album
-from tele_utils import tele_utils
+from src.handlers import help_handler, upload_handler, set_gdrive_link_handler, handle_media_album
 
 async def start_handler(update: Update, context):
     start_text = """

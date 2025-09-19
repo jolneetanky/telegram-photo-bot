@@ -1,11 +1,11 @@
 from typing import Optional
 from telegram import Message, Update, Chat
 from telegram.ext import ContextTypes
-from custom_types import MediaFile
-from exceptions import GDriveLinkNotSetError, CaptionIsNotCommandError, InvalidFolderPathArgError
-from gdrive.gdrive_folder import GDriveFolder
-from gdrive.gdrive_service import GDriveService
-from utils import delete_file
+from src.custom_types import MediaFile
+from src.exceptions import GDriveLinkNotSetError, CaptionIsNotCommandError, InvalidFolderPathArgError
+from src.gdrive.gdrive_folder import GDriveFolder
+from src.gdrive.gdrive_service import GDriveService
+from src.utils import delete_file
 import os
 
 # conatins static utility methods.

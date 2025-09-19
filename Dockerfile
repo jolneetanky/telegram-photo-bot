@@ -1,26 +1,29 @@
-# Use slim Python image
+# Use slim Python base image
 FROM python:3.11-slim
 
-# Prevents Python from writing .pyc files and forces unbuffered output
+# Environment variables to avoid pyc and enable unbuffered output
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Set working directory inside container
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies if needed (build tools, etc.)
+# Install build tools if needed (for pip packages with C extensions)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency list first for caching
+# Install dependencies first (cached if unchanged)
 COPY requirements.txt .
-
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
-COPY . .
+# Copy source code into container
+COPY src/ ./src
+COPY .env .
+COPY README.md .
 
-# Run the app
-CMD ["python", "src/main.py"]
+# ⚠️ Don’t bake secrets into the image!
+# Instead, mount oauth_credentials.json + oauth_token.json at runtime
+
+# Set default command
+CMD ["python", "-m", "src.main"]
