@@ -110,7 +110,7 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 \- *_You can always reset the link anytime\._*
 
 >*NOTE:*
-> Currently the bot only supports *public folders* / folders shared with the developer\. Am working on it\!
+> Currently the bot only supports *public folders* / folders shared with the developer\.
 
 *__☁️ UPLOADING A PHOTO/ALBUM__*
 

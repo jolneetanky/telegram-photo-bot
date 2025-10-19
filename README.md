@@ -9,7 +9,11 @@
 
 ## How the bot works:
 
-### 1) Accessing photos in a particular album
+### 1) Architecture
+
+![alt text](screenshots/image.png)
+
+### 2) Accessing photos in a particular album
 
 When the user replies to an album and sends the `upload` command to the bot, the bot has access to the replied message.
 
@@ -161,7 +165,7 @@ There are different photos for one photo, with the different resolutions. So I m
 
 Main caveat: the replied message only refers to one message (the latest one) in the album. Meaning we only have access to the most recent photo in the album.
 
-### So how do we access all photos in the album?
+### 3) So how do we access all photos in the album?
 
 - Photos in the same album share the same `media_group_id`. We use this to groups items in the same `media_group_id` as one album.
 
@@ -176,7 +180,7 @@ Main caveat: the replied message only refers to one message (the latest one) in 
     - CONS: potentially memory intensive. Also if the server goes down and the map is lost, unintuitive behaviour results. User would have to upload images one-by-one; can have a message to caveat this.
     - PROS: it works. And users can repeatedly upload an album (eg. to different gdrive folders), so long as the server is up.
 
-### Working with Google Drive
+### 4) Working with Google Drive
 
 The bot has to upload media into Google Drive. There are 2 main ways to do this:
 
@@ -194,7 +198,6 @@ I went with approach 2 since I wanted this bot to work with Personal Drives.
 2. A file created on the server should be deleted after successful / unsuccessful uploading (so client can retry without overloading our server)
 
 3. WIP: Support video uploads. Currently, only photos in an album are uploaded.
-4. WIP: Support recursive folder names
 
 ## 5) Future Extensions:
 
